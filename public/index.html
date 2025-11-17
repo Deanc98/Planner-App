@@ -1,4 +1,3 @@
-<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -6,13 +5,16 @@
     <title>Dad's Weekly Planner</title>
     <!-- Link the PWA manifest file -->
     <link rel="manifest" href="/manifest.json">
+    
+    <!-- CRITICAL FIX: This line loads the Tailwind CSS framework -->
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body>
-    <!-- This is the empty space where the React App will render -->
+    <!-- The React App will be rendered inside this div -->
     <div id="root"></div> 
     
     <!-- CRITICAL: This links to the main application script -->
-    <!-- The deployment process will find this file inside your /src folder -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+
