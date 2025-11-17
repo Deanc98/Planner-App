@@ -1,14 +1,13 @@
 {
   "name": "dads-planner-app",
   "version": "1.0.0",
-  "description": "A standalone React/Firebase note planner.",
+  "description": "A standalone, 100% offline React note planner.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "firebase": "10.0.0",
     "lucide-react": "0.300.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
