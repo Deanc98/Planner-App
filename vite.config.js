@@ -1,21 +1,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path'; // Added path module
 
 export default defineConfig({
   plugins: [react()],
-  // 1. Tell Vite to use the 'public' folder for the entry point
-  root: path.resolve(__dirname, 'public'),
+  // We tell Vite to use the 'public' folder as the root directory for assets and HTML.
+  // Since index.html is in /public, this setting tells Vite to find it there.
+  root: 'public', 
   
+  // We need to tell the builder how to handle the final output.
   build: {
-    // 2. The output must still go to the 'dist' folder in the project root
-    outDir: path.resolve(__dirname, 'dist'),
+    // The final built files must go into the 'dist' folder (which Netlify expects).
+    outDir: '../dist', 
     
-    // 3. Define the main entry file relative to the new root (public)
+    // We explicitly set the entry HTML file name.
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'public', 'index.html'),
-      },
-    },
-  },
+        main: 'index.html'
+      }
+    }
+  }
 });
