@@ -1,4 +1,5 @@
 [build]
   # Netlify will automatically run 'npm run build' which now uses react-scripts
-  # This setting tells Netlify where the compiled files go.
-  publish = "build"
+  command = "npm run build"
+  # CRITICAL: CRA builds output to a folder named 'build', not 'dist'
+  publish = "build" 
