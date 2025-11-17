@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 // CRITICAL FIX: Removed .jsx extension to help compiler find the file:
-import App from './App'; 
+import App from './App.jsx';
 
 // This is a minimal substitute for the required Tailwind CSS setup
 const style = `
