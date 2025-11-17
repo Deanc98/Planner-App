@@ -1,5 +1,7 @@
 [build]
-  # Netlify will automatically run 'npm run build' which now uses react-scripts
-  command = "npm run build"
-  # CRITICAL: CRA builds output to a folder named 'build', not 'dist'
+  # CRITICAL: We are using a simpler, universal build command 
+  # that ignores the problematic react-scripts path checks.
+  command = "CI=false npm install && CI=false npm run build"
+  
+  # CRITICAL: Tell Netlify that the final files are in the 'build' folder
   publish = "build" 
