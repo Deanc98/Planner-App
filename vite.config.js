@@ -3,11 +3,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  // Tells Vite that manifest.json and icons are in the public folder
+  // Tells Vite where to find static assets (like manifest.json and icons).
   publicDir: 'public', 
   
   build: {
-    // Tells Netlify the built files go into the 'dist' folder
+    // Tells Netlify the built files go into the 'dist' folder.
     outDir: 'dist', 
   }
 });
