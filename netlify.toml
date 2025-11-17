@@ -1,5 +1,4 @@
 [build]
-  # CRITICAL: Netlify's build process needs to run 'npm run build'
-  command = "npm run build"
-  # CRITICAL: This tells Netlify where the final files are after the build
-  publish = "dist"
+  # Netlify will automatically run 'npm run build' which now uses react-scripts
+  # This setting tells Netlify where the compiled files go.
+  publish = "build"
