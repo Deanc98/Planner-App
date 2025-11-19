@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// CRITICAL FINAL FIX: Using a new import name and forcing lowercase reference
+// CRITICAL: Importing the final component name
 import PlannerComponent from './Planner.jsx'; 
 
 // This is a minimal substitute for the required Tailwind CSS setup
@@ -9,7 +9,7 @@ const style = `
   body { font-family: 'Inter', sans-serif; }
 `;
 
-// The main component name must be changed in the render block as well
+// Add minimal CSS and render the App component
 const rootElement = document.getElementById('root');
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
@@ -19,4 +19,3 @@ if (rootElement) {
     </React.StrictMode>
   );
 }
-        
