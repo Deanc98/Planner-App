@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 // --- FIREBASE IMPORTS ---
-// We import auth and db from the local file
 import { auth, db } from './firebase';
 import { 
   signInAnonymously, 
@@ -486,4 +485,9 @@ export default function App() {
               value={formatDateKey(currentDate)}
               onChange={handleDateChange}
             />
-            <button onClick={() => setShowModal(false)} className="mt-4 w-full bg-stone-200 text-stone-700 p-3 rounded-lg font-bold hover:bg-stone-300 transition">Cancel</butto
+            <button onClick={() => setShowModal(false)} className="mt-4 w-full bg-stone-200 text-stone-700 p-3 rounded-lg font-bold hover:bg-stone-300 transition">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      
