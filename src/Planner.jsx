@@ -1,18 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db } from './firebase';
-import { 
-  GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword,
-  createUserWithEmailAndPassword, onAuthStateChanged, signOut 
-} from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 // --- CONFIG & ICONS ---
 const MS_PER_DAY = 86400000;
 const START_DATE = new Date(); START_DATE.setHours(0,0,0,0);
 
-const Icon = ({ c, s=18, cl="" }) => <span style={{fontSize:`${s}px`}} className={`inline-flex items-center justify-center ${cl}`}>{c}</span>;
-const ChevronLeft = ({size=28}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
-const ChevronRight = ({size=28}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
+const Icon = ({c,s=18,cl=""}) => <span style={{fontSize:`${s}px`}} className={`inline-flex items-center justify-center ${cl}`}>{c}</span>;
+const SvgIcon = ({d,s=28}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
+const ChevronLeft = () => <SvgIcon d={<polyline points="15 18 9 12 15 6"/>} />;
+const ChevronRight = () => <SvgIcon d={<polyline points="9 18 15 12 9 6"/>} />;
 const CalendarIcon = () => <Icon c="📅" s={20}/>;
 const PlusIcon = () => <Icon c="➕" s={24}/>;
 const Trash2Icon = ({size=18}) => <Icon c="🗑️" s={size}/>;
@@ -24,11 +22,8 @@ const BriefcaseIcon = ({size=24}) => <Icon c="💼" s={size}/>;
 const CloudIcon = () => <Icon c="☁️" s={16}/>;
 const UserIcon = () => <Icon c="👤" s={16}/>;
 const LogOutIcon = () => <Icon c="🚪" s={18}/>;
-const GoogleIcon = () => (
-  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.26.81-.58z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
-);
+const GoogleIcon = () => (<svg className="w-5 h-5 mr-2" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.26.81-.58z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>);
 
-// --- HELPERS ---
 const formatDateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const formatDisplayDate = (d) => d.toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 const formatCurrency = (a) => new Intl.NumberFormat('en-GB', { style:'currency', currency:'GBP' }).format(typeof a === 'number' ? a : parseFloat(a)||0);
@@ -42,13 +37,11 @@ export default function App() {
   const [jobs, setJobs] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
   
-  // UI & Form States
   const [modals, setModals] = useState({ job: false, week: false, date: false, profile: false, deleteId: null });
   const [newJob, setNewJob] = useState({ title: '', location: '', quote: '', tools: '', status: 'Pending' });
   const [authForm, setAuthForm] = useState({ email: '', pass: '', isSignUp: false, error: '' });
 
   useEffect(() => onAuthStateChanged(auth, (u) => { setUser(u); setAuthLoading(false); }), []);
-
   const dateKey = useMemo(() => formatDateKey(currentDate), [currentDate]);
 
   useEffect(() => {
@@ -63,7 +56,6 @@ export default function App() {
 
   const dailyJobs = useMemo(() => jobs.filter(j => j.dateKey === dateKey), [jobs, dateKey]);
 
-  // --- HANDLERS ---
   const handleGoogle = async () => {
     setAuthLoading(true); setAuthForm(p => ({...p, error: ''}));
     try { await signInWithPopup(auth, new GoogleAuthProvider()); } 
@@ -84,9 +76,10 @@ export default function App() {
     }
   };
 
-  const toggleModal = (name, val) => setModals(p => ({...p, [name]: val}));
+  const toggleModal = (n, v) => setModals(p => ({...p, [n]: v}));
   const updateJobForm = (e) => setNewJob(p => ({...p, [e.target.name]: e.target.value}));
   const updateAuthForm = (e) => setAuthForm(p => ({...p, [e.target.name]: e.target.value}));
+  const handleLogout = async () => { await signOut(auth); toggleModal('profile', false); setAuthForm({ email:'', pass:'', isSignUp: false, error: '' }); };
 
   const handleAddJob = async () => {
     if (!user || !newJob.title.trim()) return;
@@ -94,8 +87,7 @@ export default function App() {
     const quote = typeof newJob.quote === 'string' ? (parseFloat(newJob.quote.replace(/[£,]/g,''))||0) : newJob.quote;
     try {
       await setDoc(doc(db,'users',user.uid,'jobs',id), { id, dateKey, createdAt: new Date().toISOString(), ...newJob, quote });
-      toggleModal('job', false);
-      setNewJob({ title: '', location: '', quote: '', tools: '', status: 'Pending' });
+      toggleModal('job', false); setNewJob({ title: '', location: '', quote: '', tools: '', status: 'Pending' });
     } catch (e) { console.error(e); }
   };
 
@@ -126,7 +118,6 @@ export default function App() {
 
   if (authLoading) return <div className="min-h-screen bg-stone-200 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-800"></div></div>;
 
-  // --- LOGIN SCREEN ---
   if (!user) return (
     <div className="min-h-screen bg-stone-200 flex items-center justify-center p-4 font-sans">
       <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full space-y-6">
@@ -148,7 +139,6 @@ export default function App() {
     </div>
   );
 
-  // --- MAIN APP ---
   return (
     <div className="min-h-screen bg-stone-200 p-4 flex flex-col items-center font-sans">
       <style>{`@keyframes slide-up { from { transform: translateY(100%); opacity: 0.5; } to { transform: translateY(0); opacity: 1; } } .animate-slide-up { animation: slide-up 0.3s ease-out; }`}</style>
@@ -201,7 +191,7 @@ export default function App() {
                     <div className="bg-stone-800 p-4 rounded-lg mb-4"><p className="text-xs text-stone-400 uppercase mb-1">Status</p><p className="text-emerald-400 font-bold flex items-center gap-2"><span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span> Active</p></div>
                     <div className="bg-stone-800 p-4 rounded-lg"><p className="text-xs text-stone-400 uppercase mb-1">Email</p><p className="font-mono text-sm text-stone-300 break-all">{user?.email}</p></div>
                 </div>
-                <button onClick={() => {signOut(auth); toggleModal('profile', false);}} className="w-full bg-red-900/50 border border-red-800 text-red-200 p-4 rounded-xl font-bold hover:bg-red-900 transition flex items-center justify-center gap-2"><LogOutIcon /> Sign Out</button>
+                <button onClick={handleLogout} className="w-full bg-red-900/50 border border-red-800 text-red-200 p-4 rounded-xl font-bold hover:bg-red-900 transition flex items-center justify-center gap-2"><LogOutIcon /> Sign Out</button>
             </div>
         )}
       </div>
@@ -238,4 +228,6 @@ export default function App() {
         <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
             <div className="p-5 border-b border-stone-100 flex justify-between items-center shrink-0"><h3 className="text-xl font-bold text-stone-800">Weekly Overview</h3><button onClick={() => toggleModal('week', false)} className="text-stone-400 hover:text-stone-600">✕</button></div>
-            <div className="p-5 bg-stone-50 border-b border-stone-200 shrink-0 text-center"><p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Total Potential Value</p><p className="text-3xl font-extrabold text-stone-800">{formatCurre
+            <div className="p-5 bg-stone-50 border-b border-stone-200 shrink-0 text-center"><p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Total Potential Value</p><p className="text-3xl font-extrabold text-stone-800">{formatCurrency(weeklyData.total)}</p></div>
+            <div className="overflow-y-auto p-4 space-y-1">
+              {weeklyData.weekData.map((d, i
