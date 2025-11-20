@@ -2,12 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-// Import the icons we just moved
 import { ChevronLeft, ChevronRight, CalendarIcon, PlusIcon, Trash2Icon, MapPinIcon, DollarSignIcon, ToolIcon, ClockIcon, BriefcaseIcon, CloudIcon, UserIcon, LogOutIcon, GoogleIcon } from './Icons';
 
 const MS_PER_DAY = 86400000;
 const START_DATE = new Date(); START_DATE.setHours(0,0,0,0);
-
 const formatDateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const formatDisplayDate = (d) => d.toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 const formatCurrency = (a) => new Intl.NumberFormat('en-GB', { style:'currency', currency:'GBP' }).format(typeof a === 'number' ? a : parseFloat(a)||0);
@@ -229,4 +227,5 @@ export default function App() {
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-xs text-center border border-stone-100">
             <Trash2Icon size={48} className="text-stone-400 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-stone-800 mb-2">Confirm Deletion</h3>
-  
+            <p className="text-sm text-stone-600 mb-6">Are you sure you want to delete this job?</p>
+            <div className="flex gap-3"><button onClick={() => toggleModal('deleteId', null)} className="flex-1
