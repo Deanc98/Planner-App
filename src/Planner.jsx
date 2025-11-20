@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 // --- FIREBASE IMPORTS ---
-// We import auth and db from the local file we just created
+// We import auth and db from the local file
 import { auth, db } from './firebase';
 import { 
   signInAnonymously, 
@@ -105,7 +105,6 @@ export default function App() {
 
   // --- AUTHENTICATION EFFECT ---
   useEffect(() => {
-    // Listen for auth changes (login/logout)
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
@@ -124,12 +123,9 @@ export default function App() {
     }
 
     setLoadingJobs(true);
-    
-    // PATH: users/{userId}/jobs
-    // This is the standard way to store private user data
+    // Use the user's UID to create a private path
     const jobsCollection = collection(db, 'users', user.uid, 'jobs');
     
-    // Real-time listener
     const unsubscribe = onSnapshot(jobsCollection, (snapshot) => {
         const allJobs = snapshot.docs.map(doc => doc.data());
         setJobs(allJobs);
@@ -213,7 +209,6 @@ export default function App() {
       };
       
       try {
-        // Save to: users/{userId}/jobs/{jobId}
         await setDoc(doc(db, 'users', user.uid, 'jobs', jobId), newJob);
         setShowJobModal(false);
       } catch (e) {
@@ -287,7 +282,6 @@ export default function App() {
 
   // --- RENDER ---
 
-  // 1. Loading Screen
   if (authLoading) {
     return (
         <div className="min-h-screen bg-stone-200 flex items-center justify-center">
@@ -296,7 +290,6 @@ export default function App() {
     );
   }
 
-  // 2. Login Screen
   if (!user) {
       return (
         <div className="min-h-screen bg-stone-200 flex items-center justify-center p-4 font-sans">
@@ -322,7 +315,6 @@ export default function App() {
       );
   }
 
-  // 3. Main App
   return (
     <div className="min-h-screen bg-stone-200 p-4 flex flex-col items-center font-sans">
       <style>{`
@@ -491,4 +483,7 @@ export default function App() {
             <input
               type="date"
               className="w-full p-3 border-2 border-stone-200 rounded-lg text-stone-800 focus:border-stone-500 focus:outline-none text-lg text-center bg-stone-50"
-              value={formatDateKey(curr
+              value={formatDateKey(currentDate)}
+              onChange={handleDateChange}
+            />
+            <button onClick={() => setShowModal(false)} className="mt-4 w-full bg-stone-200 text-stone-700 p-3 rounded-lg font-bold hover:bg-stone-300 transition">Cancel</butto
