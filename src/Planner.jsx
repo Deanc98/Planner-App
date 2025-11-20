@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db } from './firebase';
-import { signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
+import { 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged, 
+  signOut 
+} from 'firebase/auth';
 import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 // --- CONFIGURATION ---
@@ -24,8 +31,11 @@ const ClockIcon = () => <Icon size={16}>⏰</Icon>;
 const BriefcaseIcon = ({size=24}) => <Icon size={size}>💼</Icon>;
 const CloudIcon = () => <Icon size={16}>☁️</Icon>;
 const UserIcon = () => <Icon size={16}>👤</Icon>;
-const LockIcon = () => <Icon size={48}>🔒</Icon>;
 const LogOutIcon = () => <Icon size={18}>🚪</Icon>;
+const GoogleIcon = () => (
+  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.26.81-.58z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
+);
+const MailIcon = () => <Icon size={20}>✉️</Icon>;
 
 // --- HELPERS ---
 const formatDateKey = (date) => {
@@ -46,12 +56,20 @@ export default function App() {
   const [currentDate, setCurrentDate] = useState(START_DATE);
   const [jobs, setJobs] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
+  
+  // UI States
   const [showJobModal, setShowJobModal] = useState(false);
   const [showWeeklyModal, setShowWeeklyModal] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [newJobDetails, setNewJobDetails] = useState({ title: '', location: '', quote: '', tools: '', status: 'Pending' });
+
+  // Auth Form States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -75,18 +93,57 @@ export default function App() {
 
   const dailyJobs = useMemo(() => jobs.filter(job => job.dateKey === currentDateKey), [jobs, currentDateKey]);
 
-  const handleLogin = async () => {
+  // --- AUTH HANDLERS ---
+  const handleGoogleLogin = async () => {
     setAuthLoading(true);
-    try { await signInAnonymously(auth); } catch (e) { console.error(e); setAuthLoading(false); }
+    setAuthError('');
+    try { 
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider); 
+    } catch (e) { 
+      console.error("Google Auth Error:", e); 
+      setAuthLoading(false); 
+      setAuthError("Google sign-in failed. Please try again.");
+    }
   };
-  const handleLogout = async () => { await signOut(auth); setShowProfile(false); };
+
+  const handleEmailAuth = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError('');
+    
+    try {
+      if (isSignUp) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (err) {
+      console.error("Email Auth Error:", err);
+      setAuthLoading(false);
+      if (err.code === 'auth/invalid-credential') setAuthError('Incorrect email or password.');
+      else if (err.code === 'auth/email-already-in-use') setAuthError('This email is already registered.');
+      else if (err.code === 'auth/weak-password') setAuthError('Password should be at least 6 characters.');
+      else setAuthError(err.message);
+    }
+  };
+
+  const handleLogout = async () => { 
+    await signOut(auth); 
+    setShowProfile(false); 
+    setEmail(''); 
+    setPassword(''); 
+  };
+
   const navigateDate = useCallback((dir) => setCurrentDate(new Date(currentDate.getTime() + dir * MS_PER_DAY)), [currentDate]);
+  
   const handleDateChange = (e) => {
     if (!e.target.value) return;
     const [y, m, d] = e.target.value.split('-').map(Number);
     setCurrentDate(new Date(y, m - 1, d));
     setShowModal(false);
   };
+  
   const handleJobDetailChange = (e) => setNewJobDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleAddJob = async () => {
@@ -134,17 +191,71 @@ export default function App() {
 
   if (authLoading) return <div className="min-h-screen bg-stone-200 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-800"></div></div>;
 
+  // --- LOGIN SCREEN (UPDATED) ---
   if (!user) return (
     <div className="min-h-screen bg-stone-200 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full text-center space-y-6">
-            <div className="bg-stone-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"><LockIcon /></div>
-            <div><h1 className="text-2xl font-bold text-stone-800">Trade Planner</h1><p className="text-stone-500 mt-2">Sign in to access your jobs and sync across devices.</p></div>
-            <button onClick={handleLogin} className="w-full bg-stone-800 text-white p-4 rounded-xl font-bold hover:bg-stone-700 transition shadow-lg flex items-center justify-center gap-3"><span>Sign In Now</span></button>
-            <p className="text-xs text-stone-400">Securely powered by Firebase Auth</p>
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full space-y-6">
+            <div className="text-center">
+              <div className="bg-white border border-stone-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                <BriefcaseIcon size={28} className="text-stone-700" />
+              </div>
+              <h1 className="text-2xl font-bold text-stone-800">Trade Planner</h1>
+              <p className="text-stone-500 text-sm mt-1">{isSignUp ? "Create an account to get started." : "Welcome back! Please sign in."}</p>
+            </div>
+
+            <form onSubmit={handleEmailAuth} className="space-y-3">
+              {authError && <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-lg">{authError}</div>}
+              
+              <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Email</label>
+                <input 
+                  type="email" 
+                  required
+                  className="w-full p-3 border border-stone-200 rounded-lg focus:border-stone-800 outline-none bg-stone-50 text-sm"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Password</label>
+                <input 
+                  type="password" 
+                  required
+                  minLength={6}
+                  className="w-full p-3 border border-stone-200 rounded-lg focus:border-stone-800 outline-none bg-stone-50 text-sm"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              
+              <button type="submit" className="w-full bg-stone-800 text-white p-3.5 rounded-xl font-bold hover:bg-stone-700 transition shadow-sm text-sm">
+                {isSignUp ? "Create Account" : "Sign In"}
+              </button>
+            </form>
+
+            <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-stone-200"></div>
+                <span className="flex-shrink-0 mx-2 text-stone-300 text-xs uppercase font-bold">Or</span>
+                <div className="flex-grow border-t border-stone-200"></div>
+            </div>
+
+            <button onClick={handleGoogleLogin} className="w-full bg-white text-stone-700 border border-stone-300 p-3 rounded-xl font-bold hover:bg-stone-50 transition shadow-sm flex items-center justify-center gap-2 text-sm">
+              <GoogleIcon />
+              <span>Continue with Google</span>
+            </button>
+            
+            <div className="text-center pt-2">
+              <button onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); }} className="text-sm text-stone-500 hover:text-stone-800 font-medium">
+                {isSignUp ? "Already have an account? Sign In" : "Need an account? Create one"}
+              </button>
+            </div>
         </div>
     </div>
   );
 
+  // --- MAIN APP RENDER ---
   return (
     <div className="min-h-screen bg-stone-200 p-4 flex flex-col items-center font-sans">
       <style>{`@keyframes slide-up { from { transform: translateY(100%); opacity: 0.5; } to { transform: translateY(0); opacity: 1; } } .animate-slide-up { animation: slide-up 0.3s ease-out; }`}</style>
@@ -205,7 +316,7 @@ export default function App() {
                         <p className="text-xs text-stone-400 uppercase mb-1">Account Status</p>
                         <p className="text-emerald-400 font-bold flex items-center gap-2"><span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span> Active & Syncing</p>
                     </div>
-                    <div className="bg-stone-800 p-4 rounded-lg"><p className="text-xs text-stone-400 uppercase mb-1">User ID</p><p className="font-mono text-sm text-stone-300 break-all">{user?.uid}</p></div>
+                    <div className="bg-stone-800 p-4 rounded-lg"><p className="text-xs text-stone-400 uppercase mb-1">Email</p><p className="font-mono text-sm text-stone-300 break-all">{user?.email}</p></div>
                     <p className="mt-6 text-sm text-stone-400 leading-relaxed">Your jobs are being saved to the secure cloud database.</p>
                 </div>
                 <button onClick={handleLogout} className="w-full bg-red-900/50 border border-red-800 text-red-200 p-4 rounded-xl font-bold hover:bg-red-900 transition flex items-center justify-center gap-2"><LogOutIcon /> Sign Out</button>
@@ -227,52 +338,4 @@ export default function App() {
         <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-up">
             <div className="p-5 border-b border-stone-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                 <h3 className="text-xl font-bold text-stone-800">New Job</h3>
-                 <button onClick={() => setShowJobModal(false)} className="text-stone-400 hover:text-stone-600">✕</button>
-            </div>
-            <div className="p-5 space-y-4">
-                <div><label className="block text-xs font-bold text-stone-500 uppercase mb-1">Client / Job Title</label><input type="text" name="title" value={newJobDetails.title} onChange={handleJobDetailChange} className="w-full p-3 border-2 border-stone-200 rounded-lg focus:border-stone-500 focus:outline-none bg-stone-50" placeholder="e.g. Boiler Service" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-xs font-bold text-stone-500 uppercase mb-1">Quote (£)</label><input type="number" name="quote" value={newJobDetails.quote} onChange={handleJobDetailChange} className="w-full p-3 border-2 border-stone-200 rounded-lg focus:border-stone-500 focus:outline-none bg-stone-50" placeholder="0.00" /></div>
-                    <div><label className="block text-xs font-bold text-stone-500 uppercase mb-1">Status</label><select name="status" value={newJobDetails.status} onChange={handleJobDetailChange} className="w-full p-3 border-2 border-stone-200 rounded-lg bg-stone-50 focus:border-stone-500 focus:outline-none"><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Complete">Complete</option></select></div>
-                </div>
-                <div><label className="block text-xs font-bold text-stone-500 uppercase mb-1">Location</label><input type="text" name="location" value={newJobDetails.location} onChange={handleJobDetailChange} className="w-full p-3 border-2 border-stone-200 rounded-lg focus:border-stone-500 focus:outline-none bg-stone-50" placeholder="Address..." /></div>
-                <div><label className="block text-xs font-bold text-stone-500 uppercase mb-1">Tools & Materials</label><textarea name="tools" value={newJobDetails.tools} onChange={handleJobDetailChange} rows="3" className="w-full p-3 border-2 border-stone-200 rounded-lg focus:border-stone-500 focus:outline-none resize-none bg-stone-50" placeholder="Required items..." /></div>
-                <div className="pt-2 flex gap-3"><button onClick={() => setShowJobModal(false)} className="flex-1 bg-stone-200 text-stone-700 p-3 rounded-xl font-bold hover:bg-stone-300 transition">Cancel</button><button onClick={handleAddJob} className="flex-1 bg-stone-800 text-white p-3 rounded-xl font-bold hover:bg-stone-700 transition shadow-md">Save Job</button></div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showWeeklyModal && (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
-            <div className="p-5 border-b border-stone-100 flex justify-between items-center shrink-0"><h3 className="text-xl font-bold text-stone-800">Weekly Overview</h3><button onClick={() => setShowWeeklyModal(false)} className="text-stone-400 hover:text-stone-600">✕</button></div>
-            <div className="p-5 bg-stone-50 border-b border-stone-200 shrink-0 text-center"><p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Total Potential Value</p><p className="text-3xl font-extrabold text-stone-800">{formatCurrency(weeklyData.totalQuotedValue)}</p></div>
-            <div className="overflow-y-auto p-4 space-y-1">
-              {weeklyData.weekData.map((day, index) => (
-                <div key={index} className={`py-3 px-3 rounded-lg ${day.isCurrent ? 'bg-stone-200 border border-stone-300' : ''}`}>
-                  <div className="flex justify-between items-center mb-1"><h4 className={`font-bold ${day.isCurrent ? 'text-stone-900' : 'text-stone-600'}`}>{day.date}</h4>{day.dayTotal > 0 && <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{formatCurrency(day.dayTotal)}</span>}</div>
-                  {day.jobs.length === 0 ? <p className="text-xs text-stone-400 italic">— Free day</p> : <ul className="space-y-2 mt-2">{day.jobs.map((job) => (<li key={job.id} className="bg-white p-2 rounded border border-stone-100 shadow-sm flex justify-between items-center"><span className="text-sm text-stone-700 font-medium truncate pr-2">{job.title}</span><div className={`w-2 h-2 rounded-full flex-shrink-0 ${job.status === 'Complete' ? 'bg-emerald-500' : job.status === 'In Progress' ? 'bg-amber-500' : 'bg-stone-300'}`}></div></li>))}</ul>}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {showConfirmDelete !== null && (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-xs text-center border border-stone-100">
-            <Trash2Icon size={48} className="text-stone-400 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-stone-800 mb-2">Confirm Deletion</h3>
-            <p className="text-sm text-stone-600 mb-6">Are you sure you want to delete this job?</p>
-            <div className="flex gap-3"><button onClick={() => setShowConfirmDelete(null)} className="flex-1 bg-stone-200 text-stone-700 p-3 rounded-xl font-bold hover:bg-stone-300 transition">Cancel</button><button onClick={handleDeleteJob} className="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-700 transition">Delete</button></div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
+                 <h3 className="text-xl font-bold text-stone-8
