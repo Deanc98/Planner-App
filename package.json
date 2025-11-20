@@ -1,7 +1,8 @@
 {
-  "name": "dads-planner-app",
+  "name": "trade-planner-app",
   "version": "1.0.0",
-  "description": "A standalone, 100% offline React note planner.",
+  "description": "A self-contained React job planner using a neutral color scheme.",
+  "main": "src/App.jsx",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -9,13 +10,9 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
-    "lucide-react": "0.300.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-scripts": "5.0.1"
-  },
-  "devDependencies": {
-    "typescript": "^4.9.5"
   },
   "browserslist": {
     "production": [
