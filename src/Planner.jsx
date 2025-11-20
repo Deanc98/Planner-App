@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-import { ChevronLeft, ChevronRight, CalendarIcon, PlusIcon, Trash2Icon, MapPinIcon, DollarSignIcon, ToolIcon, ClockIcon, BriefcaseIcon, CloudIcon, UserIcon, LogOutIcon, GoogleIcon } from './Icons';
+import { ChevronLeft, ChevronRight, CalendarIcon, PlusIcon, Trash2Icon, MapPinIcon, DollarSignIcon, ToolIcon, ClockIcon, BriefcaseIcon, CloudIcon, UserIcon, LogOutIcon } from './Icons';
+import AuthScreen from './Auth';
 
 const MS_PER_DAY = 86400000;
 const START_DATE = new Date(); START_DATE.setHours(0,0,0,0);
@@ -59,7 +60,6 @@ export default function App() {
 
   const toggleModal = (n, v) => setModals(p => ({...p, [n]: v}));
   const updateJobForm = (e) => setNewJob(p => ({...p, [e.target.name]: e.target.value}));
-  const updateAuthForm = (e) => setAuthForm(p => ({...p, [e.target.name]: e.target.value}));
   const handleLogout = async () => { await signOut(auth); toggleModal('profile', false); setAuthForm({ email:'', pass:'', isSignUp: false, error: '' }); };
 
   const handleAddJob = async () => {
@@ -99,26 +99,7 @@ export default function App() {
 
   if (authLoading) return <div className="min-h-screen bg-stone-200 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-800"></div></div>;
 
-  if (!user) return (
-    <div className="min-h-screen bg-stone-200 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full space-y-6">
-        <div className="text-center">
-          <div className="bg-white border border-stone-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm"><BriefcaseIcon size={28} /></div>
-          <h1 className="text-2xl font-bold text-stone-800">Trade Planner</h1>
-          <p className="text-stone-500 text-sm mt-1">{authForm.isSignUp ? "Create an account." : "Welcome back!"}</p>
-        </div>
-        <form onSubmit={handleEmail} className="space-y-3">
-          {authForm.error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg">{authForm.error}</div>}
-          <div><label className="text-xs font-bold text-stone-500 uppercase">Email</label><input name="email" type="email" required className="w-full p-3 border border-stone-200 rounded-lg bg-stone-50 text-sm" value={authForm.email} onChange={updateAuthForm} placeholder="email@example.com"/></div>
-          <div><label className="text-xs font-bold text-stone-500 uppercase">Password</label><input name="pass" type="password" required minLength={6} className="w-full p-3 border border-stone-200 rounded-lg bg-stone-50 text-sm" value={authForm.pass} onChange={updateAuthForm} placeholder="••••••••"/></div>
-          <button type="submit" className="w-full bg-stone-800 text-white p-3.5 rounded-xl font-bold hover:bg-stone-700 transition shadow-sm text-sm">{authForm.isSignUp ? "Create Account" : "Sign In"}</button>
-        </form>
-        <div className="flex py-1 items-center"><div className="flex-grow border-t border-stone-200"></div><span className="mx-2 text-stone-300 text-xs font-bold">OR</span><div className="flex-grow border-t border-stone-200"></div></div>
-        <button onClick={handleGoogle} className="w-full bg-white text-stone-700 border border-stone-300 p-3 rounded-xl font-bold hover:bg-stone-50 transition flex items-center justify-center gap-2 text-sm"><GoogleIcon /><span>Continue with Google</span></button>
-        <div className="text-center pt-2"><button onClick={() => setAuthForm(p => ({...p, isSignUp: !p.isSignUp, error: ''}))} className="text-sm text-stone-500 hover:text-stone-800 font-medium">{authForm.isSignUp ? "Have an account? Sign In" : "Need an account? Create one"}</button></div>
-      </div>
-    </div>
-  );
+  if (!user) return <AuthScreen handleGoogle={handleGoogle} handleEmail={handleEmail} authForm={authForm} setAuthForm={setAuthForm} />;
 
   return (
     <div className="min-h-screen bg-stone-200 p-4 flex flex-col items-center font-sans">
@@ -228,4 +209,12 @@ export default function App() {
             <Trash2Icon size={48} className="text-stone-400 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-stone-800 mb-2">Confirm Deletion</h3>
             <p className="text-sm text-stone-600 mb-6">Are you sure you want to delete this job?</p>
-            <div className="flex gap-3"><button onClick={() => toggleModal('deleteId', null)} className="flex-1
+            <div className="flex gap-3"><button onClick={() => toggleModal('deleteId', null)} className="flex-1 bg-stone-200 text-stone-700 p-3 rounded-xl font-bold hover:bg-stone-300">Cancel</button><button onClick={deleteJob} className="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-700">Delete</button></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
